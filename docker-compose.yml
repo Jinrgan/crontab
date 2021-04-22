@@ -1,0 +1,19 @@
+services:
+
+    dist-db:
+        build: ./etcd-docker
+        ports:
+            - 2379:2379
+        networks:
+            - back-tier
+    
+    log:
+        image: mongo:4.0.0
+        ports: 
+            - 27017:27017
+        networks:
+            - back-tier
+
+networks:
+    back-tier:
+        driver: bridge
