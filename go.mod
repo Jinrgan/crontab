@@ -20,7 +20,7 @@ require (
 	github.com/soheilhy/cmux v0.1.5 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20201229170055-e5319fda7802 // indirect
 	go.mongodb.org/mongo-driver v1.5.1
-	go.uber.org/zap v1.16.0 // indirect
+	go.uber.org/zap v1.16.0
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
 	google.golang.org/genproto v0.0.0-20210422153429-2279cbceda62 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
