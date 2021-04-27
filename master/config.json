@@ -1,5 +1,7 @@
 {
-  "port": ":8070",
-  "read_timeout": 5000,
-  "write_timeout": 5000
+  "handler_port": ":8070",
+  "handler_read_timeout": 5000,
+  "handler_write_timeout": 5000,
+  "etcd_end_points": [":2379"],
+  "etcd_dial_timeout": 5000
 }

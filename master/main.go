@@ -1,10 +1,12 @@
 package main
 
 import (
+	"crontab/master/dao"
 	"crontab/master/master"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/coreos/etcd/clientv3"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"log"
@@ -14,9 +16,11 @@ import (
 )
 
 type config struct {
-	Port         string `json:"port"`
-	ReadTimeout  int    `json:"read_timeout"`
-	WriteTimeout int    `json:"write_timeout"`
+	HandlerPort         string   `json:"handler_port"`
+	HandlerReadTimeout  int      `json:"handler_read_timeout"`
+	HandlerWriteTimeout int      `json:"handler_write_timeout"`
+	EtcdEndPoints       []string `json:"etcd_end_points"`
+	EtcdDialTimeout     int      `json:"etcd_dial_timeout"`
 }
 
 func main() {
@@ -34,20 +38,38 @@ func main() {
 		logger.Fatal("cannot get config", zap.Error(err))
 	}
 
+	// etcd
+	clt, err := clientv3.New(clientv3.Config{
+		Endpoints:   conf.EtcdEndPoints,
+		DialTimeout: time.Duration(conf.EtcdDialTimeout) * time.Millisecond,
+	})
+	if err != nil {
+		logger.Fatal("cannot connect etcd", zap.Error(err))
+	}
+
 	// create http service
-	lis, err := net.Listen("tcp", conf.Port)
+	lis, err := net.Listen("tcp", conf.HandlerPort)
 	if err != nil {
 		logger.Fatal("failed to listen", zap.Error(err))
 	}
 
-	http.HandleFunc("job/save", master.HandleJobSave)
+	h := master.Handler{
+		DB: &dao.Etcd{
+			KV:     clientv3.NewKV(clt),
+			Lease:  clientv3.NewLease(clt),
+			JobKey: "/cron/job",
+		},
+		Logger: logger,
+	}
+
+	w := master.Wrapper{Logger: logger}
+	http.HandleFunc("/job/save", w.WrapErr(h.SaveJob))
 
 	s := &http.Server{
 		Handler:      http.DefaultServeMux,
-		ReadTimeout:  time.Duration(conf.ReadTimeout) * time.Millisecond,
-		WriteTimeout: time.Duration(conf.WriteTimeout) * time.Millisecond,
+		ReadTimeout:  time.Duration(conf.HandlerReadTimeout) * time.Millisecond,
+		WriteTimeout: time.Duration(conf.HandlerWriteTimeout) * time.Millisecond,
 	}
-
 	err = s.Serve(lis)
 	if err != nil {
 		logger.Fatal("failed to serve", zap.Error(err))
