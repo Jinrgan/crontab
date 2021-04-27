@@ -25,14 +25,31 @@ func (h *Handler) SaveJob(w http.ResponseWriter, req *http.Request) error {
 		return err
 	}
 
-	oldJob, err := h.DB.CreateJob(context.Background(), &job)
+	oldJ, err := h.DB.CreateJob(context.Background(), &job)
 	if err != nil {
 		h.Logger.Error("cannot create job", zap.Error(err))
 		return err
 	}
 
 	// 返回正常应答（{"errno": 0, "msg": "", "data": {...}}）
-	err = response(w, "success", oldJob)
+	err = response(w, oldJ)
+	if err != nil {
+		h.Logger.Error("fail to response", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+func (h *Handler) DeleteJob(w http.ResponseWriter, req *http.Request) error {
+	name := req.PostFormValue("name")
+
+	oldJ, err := h.DB.DeleteJob(context.Background(), name)
+	if err != nil {
+		return err
+	}
+
+	err = response(w, oldJ)
 	if err != nil {
 		h.Logger.Error("fail to response", zap.Error(err))
 		return err
@@ -47,10 +64,10 @@ type respMsg struct {
 	Data  interface{} `json:"data"`
 }
 
-func response(w http.ResponseWriter, msg string, data *api.Job) error {
+func response(w http.ResponseWriter, data *api.Job) error {
 	b, err := json.Marshal(respMsg{
 		Errno: 0,
-		Msg:   msg,
+		Msg:   "success",
 		Data:  data,
 	})
 	if err != nil {

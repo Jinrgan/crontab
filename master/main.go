@@ -57,13 +57,14 @@ func main() {
 		DB: &dao.Etcd{
 			KV:     clientv3.NewKV(clt),
 			Lease:  clientv3.NewLease(clt),
-			JobKey: "/cron/job",
+			JobKey: "/cron/job/",
 		},
 		Logger: logger,
 	}
 
 	w := master.Wrapper{Logger: logger}
 	http.HandleFunc("/job/save", w.WrapErr(h.SaveJob))
+	http.HandleFunc("/job/delete", w.WrapErr(h.DeleteJob))
 
 	s := &http.Server{
 		Handler:      http.DefaultServeMux,

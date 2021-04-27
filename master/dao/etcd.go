@@ -38,3 +38,22 @@ func (e *Etcd) CreateJob(ctx context.Context, j *api.Job) (*api.Job, error) {
 
 	return &oldJ, nil
 }
+
+func (e *Etcd) DeleteJob(ctx context.Context, jobName string) (*api.Job, error) {
+	resp, err := e.KV.Delete(ctx, e.JobKey+jobName, clientv3.WithPrevKV())
+	if err != nil {
+		return nil, fmt.Errorf("cannot delete job: %v", err)
+	}
+
+	if resp.PrevKvs == nil {
+		return nil, nil
+	}
+
+	var oldJ api.Job
+	err = json.Unmarshal(resp.PrevKvs[0].Value, &oldJ)
+	if err != nil {
+		return nil, fmt.Errorf("cannot unmarshal: %v", err)
+	}
+
+	return &oldJ, nil
+}
