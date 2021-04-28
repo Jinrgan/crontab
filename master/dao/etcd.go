@@ -9,6 +9,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const jobKillDir = "/cron/killer/"
+
 type Etcd struct {
 	KV     clientv3.KV
 	Lease  clientv3.Lease
@@ -59,6 +61,23 @@ func (e *Etcd) GetJobs(ctx context.Context) ([]*api.Job, error) {
 	}
 
 	return jobs, nil
+}
+
+func (e *Etcd) KillJob(ctx context.Context, name string) error {
+	k := jobKillDir + name
+
+	// 让 worker 监听到一次 put 操作，创建一个租约让其稍后自动过期即可
+	lsResp, err := e.Lease.Grant(ctx, 1)
+	if err != nil {
+		return fmt.Errorf("cannot grant lease: %v", err)
+	}
+
+	_, err = e.KV.Put(ctx, k, "", clientv3.WithLease(lsResp.ID))
+	if err != nil {
+		return fmt.Errorf("cannot put kv: %v", err)
+	}
+
+	return nil
 }
 
 func (e *Etcd) DeleteJob(ctx context.Context, jobName string) (*api.Job, error) {

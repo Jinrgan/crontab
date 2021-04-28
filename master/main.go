@@ -61,21 +61,15 @@ func main() {
 		},
 		Logger: logger,
 	}
-
-	w := master.Wrapper{Logger: logger}
-	http.HandleFunc("/job/save", w.WrapErr(h.SaveJob))
-	http.HandleFunc("/job/delete", w.WrapErr(h.DeleteJob))
-	http.HandleFunc("/job/list", w.WrapErr(h.GetJobs))
+	h.Register()
 
 	s := &http.Server{
 		Handler:      http.DefaultServeMux,
 		ReadTimeout:  time.Duration(conf.HandlerReadTimeout) * time.Millisecond,
 		WriteTimeout: time.Duration(conf.HandlerWriteTimeout) * time.Millisecond,
 	}
-	err = s.Serve(lis)
-	if err != nil {
-		logger.Fatal("failed to serve", zap.Error(err))
-	}
+	logger.Info("server started", zap.String("name", "user"), zap.String("Addr", conf.HandlerPort))
+	logger.Sugar().Fatal(s.Serve(lis))
 }
 
 func getConfig(f string) (*config, error) {

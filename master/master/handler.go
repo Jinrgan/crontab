@@ -15,6 +15,14 @@ type Handler struct {
 	Logger *zap.Logger
 }
 
+func (h *Handler) Register() {
+	w := Wrapper{Logger: h.Logger}
+	http.HandleFunc("/job/save", w.WrapErr(h.SaveJob))
+	http.HandleFunc("/job/delete", w.WrapErr(h.DeleteJob))
+	http.HandleFunc("/job/list", w.WrapErr(h.GetJobs))
+	http.HandleFunc("/job/kill", w.WrapErr(h.KillJob))
+}
+
 func (h *Handler) SaveJob(w http.ResponseWriter, req *http.Request) error {
 	j := req.PostFormValue("job")
 
@@ -77,6 +85,22 @@ func (h *Handler) DeleteJob(w http.ResponseWriter, req *http.Request) error {
 	if err != nil {
 		h.Logger.Error("fail to response", zap.Error(err))
 		return err
+	}
+
+	return nil
+}
+
+func (h *Handler) KillJob(w http.ResponseWriter, req *http.Request) error {
+	name := req.PostFormValue("name")
+
+	err := h.DB.KillJob(context.Background(), name)
+	if err != nil {
+		return fmt.Errorf("cannot kill job: %v", err)
+	}
+
+	err = response(w, nil)
+	if err != nil {
+		return fmt.Errorf("fail to response: %v", err)
 	}
 
 	return nil
