@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/coreos/etcd/clientv3"
+	"go.uber.org/zap"
 )
 
 type Etcd struct {
 	KV     clientv3.KV
 	Lease  clientv3.Lease
 	JobKey string
+	logger *zap.Logger
 }
 
 func (e *Etcd) CreateJob(ctx context.Context, j *api.Job) (*api.Job, error) {
@@ -37,6 +39,26 @@ func (e *Etcd) CreateJob(ctx context.Context, j *api.Job) (*api.Job, error) {
 	}
 
 	return &oldJ, nil
+}
+
+func (e *Etcd) GetJobs(ctx context.Context) ([]*api.Job, error) {
+	resp, err := e.KV.Get(ctx, e.JobKey, clientv3.WithPrefix())
+	if err != nil {
+		return nil, fmt.Errorf("cannot get jobs: %v", err)
+	}
+
+	var jobs []*api.Job
+	for _, kv := range resp.Kvs {
+		var job api.Job
+		err := json.Unmarshal(kv.Value, &job)
+		if err != nil {
+			e.logger.Error("cannot unmarshal job", zap.Error(err))
+		}
+
+		jobs = append(jobs, &job)
+	}
+
+	return jobs, nil
 }
 
 func (e *Etcd) DeleteJob(ctx context.Context, jobName string) (*api.Job, error) {

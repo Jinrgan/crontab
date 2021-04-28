@@ -41,6 +41,30 @@ func (h *Handler) SaveJob(w http.ResponseWriter, req *http.Request) error {
 	return nil
 }
 
+func (h *Handler) GetJobs(w http.ResponseWriter, _ *http.Request) error {
+	jobs, err := h.DB.GetJobs(context.Background())
+	if err != nil {
+		h.Logger.Error("cannot get jobs", zap.Error(err))
+		return err
+	}
+
+	b, err := json.Marshal(respMsg{
+		Errno: 0,
+		Msg:   "success",
+		Data:  jobs,
+	})
+	if err != nil {
+		return fmt.Errorf("cannot marshal response: %v", err)
+	}
+
+	_, err = w.Write(b)
+	if err != nil {
+		return fmt.Errorf("cannot write response: %v", err)
+	}
+
+	return nil
+}
+
 func (h *Handler) DeleteJob(w http.ResponseWriter, req *http.Request) error {
 	name := req.PostFormValue("name")
 

@@ -65,6 +65,7 @@ func main() {
 	w := master.Wrapper{Logger: logger}
 	http.HandleFunc("/job/save", w.WrapErr(h.SaveJob))
 	http.HandleFunc("/job/delete", w.WrapErr(h.DeleteJob))
+	http.HandleFunc("/job/list", w.WrapErr(h.GetJobs))
 
 	s := &http.Server{
 		Handler:      http.DefaultServeMux,

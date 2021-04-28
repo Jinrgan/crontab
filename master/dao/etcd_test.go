@@ -107,7 +107,7 @@ func TestEtcd_DeleteJob(t *testing.T) {
 			t.Fatalf("cannot marshal job: %v", err)
 		}
 
-		_, err = e.KV.Put(ctx, e.JobKey+"/"+j.Name, string(b))
+		_, err = e.KV.Put(ctx, e.JobKey+j.Name, string(b))
 		if err != nil {
 			t.Fatalf("cannot put job: %v", err)
 		}
@@ -160,6 +160,52 @@ func TestEtcd_DeleteJob(t *testing.T) {
 				t.Errorf("result differs; -want +got: %s", diff)
 			}
 		})
+	}
+}
+
+func TestEtcd_GetJobs(t *testing.T) {
+	ctx := context.Background()
+	clt, err := etcdtesting.NewClient(ctx)
+	if err != nil {
+		t.Fatalf("cannot connect etcd: %v", err)
+	}
+
+	e := Etcd{
+		KV:     clientv3.NewKV(clt),
+		Lease:  clientv3.NewLease(clt),
+		JobKey: "/test/",
+	}
+
+	jobs := []*api.Job{
+		{
+			Name:    "job_1",
+			Command: "echo hello1",
+		},
+		{
+			Name:    "job_2",
+			Command: "echo hello2",
+		},
+	}
+
+	for _, j := range jobs {
+		b, err := json.Marshal(j)
+		if err != nil {
+			t.Fatalf("cannot marshal job: %v", err)
+		}
+
+		_, err = e.KV.Put(ctx, e.JobKey+j.Name, string(b))
+		if err != nil {
+			t.Fatalf("cannot put job: %v", err)
+		}
+	}
+
+	got, err := e.GetJobs(ctx)
+	if err != nil {
+		t.Errorf("cannot get jobs: %v", err)
+	}
+
+	if diff := cmp.Diff(jobs, got, protocmp.Transform()); diff != "" {
+		t.Errorf("result differs; -want +got: %s", diff)
 	}
 }
 
