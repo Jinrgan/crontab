@@ -62,6 +62,7 @@ func main() {
 		Logger: logger,
 	}
 	h.Register()
+	http.Handle("/", http.FileServer(http.Dir("./master/front")))
 
 	s := &http.Server{
 		Handler:      http.DefaultServeMux,
