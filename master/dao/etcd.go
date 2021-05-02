@@ -5,11 +5,10 @@ import (
 	"crontab/master/api"
 	"encoding/json"
 	"fmt"
+
 	"github.com/coreos/etcd/clientv3"
 	"go.uber.org/zap"
 )
-
-const jobKillDir = "/cron/killer/"
 
 type Etcd struct {
 	KV     clientv3.KV

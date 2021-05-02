@@ -3,16 +3,15 @@ package main
 import (
 	"crontab/master/dao"
 	"crontab/master/master"
-	"encoding/json"
-	"flag"
+	"crontab/shared/server"
 	"fmt"
-	"github.com/coreos/etcd/clientv3"
-	"go.uber.org/zap"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/coreos/etcd/clientv3"
+	"go.uber.org/zap"
 )
 
 type config struct {
@@ -29,11 +28,15 @@ func main() {
 		log.Fatalf("cannot create logger: %v", err)
 	}
 
-	var file string
-	flag.StringVar(&file, "config", "master/config.json", "specify config file")
-	flag.Parse()
-
-	conf, err := getConfig(file)
+	var conf config
+	err = server.GetConfig("master/config.json",
+		func(m func([]byte, interface{}) error, b []byte) error {
+			err := m(b, &conf)
+			if err != nil {
+				return fmt.Errorf("cannot unmarshal: %v", err)
+			}
+			return nil
+		})
 	if err != nil {
 		logger.Fatal("cannot get config", zap.Error(err))
 	}
@@ -55,9 +58,11 @@ func main() {
 
 	h := master.Handler{
 		DB: &dao.Etcd{
-			KV:     clientv3.NewKV(clt),
-			Lease:  clientv3.NewLease(clt),
-			JobKey: "/cron/job/",
+			JobSaveDir: server.JobSaveDir,
+			JobKillDir: server.JobKillDir,
+			KV:         clientv3.NewKV(clt),
+			Lease:      clientv3.NewLease(clt),
+			Logger:     logger,
 		},
 		Logger: logger,
 	}
@@ -71,19 +76,4 @@ func main() {
 	}
 	logger.Info("server started", zap.String("name", "user"), zap.String("Addr", conf.HandlerPort))
 	logger.Sugar().Fatal(s.Serve(lis))
-}
-
-func getConfig(f string) (*config, error) {
-	bytes, err := ioutil.ReadFile(f)
-	if err != nil {
-		return nil, fmt.Errorf("cannot read file: %v", err)
-	}
-
-	var conf config
-	err = json.Unmarshal(bytes, &conf)
-	if err != nil {
-		return nil, fmt.Errorf("cannot unmarshal: %v", err)
-	}
-
-	return &conf, nil
 }
