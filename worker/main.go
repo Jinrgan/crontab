@@ -1,7 +1,11 @@
 package main
 
 import (
-	"crontab/shared/service"
+	"crontab/shared/server"
+	"crontab/worker/dao"
+	"crontab/worker/dao/kv"
+	"crontab/worker/watcher/job"
+	"crontab/worker/worker"
 	"fmt"
 	"log"
 	"time"
@@ -36,11 +40,32 @@ func main() {
 	}
 
 	// etcd
-	_, err = clientv3.New(clientv3.Config{
+	clt, err := clientv3.New(clientv3.Config{
 		Endpoints:   conf.EtcdEndPoints,
 		DialTimeout: time.Duration(conf.EtcdDialTimeout) * time.Millisecond,
 	})
 	if err != nil {
 		logger.Fatal("cannot connect etcd", zap.Error(err))
 	}
+
+	kvWch := kv.Watcher{Watcher: clientv3.NewWatcher(clt)}
+	sch := &worker.Scheduler{
+		DB: &dao.Etcd{
+			Dir:    server.JobSaveDir,
+			KV:     clientv3.NewKV(clt),
+			Lease:  clientv3.NewLease(clt),
+			Logger: logger,
+		},
+		PutJobWatcher: &job.PutWatcher{
+			Dir:     server.JobSaveDir,
+			Watcher: kvWch,
+			Logger:  logger,
+		},
+		DeleteJobWatcher: &job.DeleteWatcher{
+			Dir:     server.JobSaveDir,
+			Watcher: kvWch,
+		},
+	}
+
+	logger.Sugar().Error(sch.Run())
 }
