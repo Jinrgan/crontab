@@ -1,0 +1,4 @@
+{
+  "etcd_end_points": [":2379"],
+  "etcd_dial_timeout": 5000
+}

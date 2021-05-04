@@ -3,10 +3,11 @@ package main
 import (
 	"crontab/shared/service"
 	"fmt"
-	"github.com/coreos/etcd/clientv3"
-	"go.uber.org/zap"
 	"log"
 	"time"
+
+	"github.com/coreos/etcd/clientv3"
+	"go.uber.org/zap"
 )
 
 // 程序配置
@@ -22,7 +23,7 @@ func main() {
 	}
 
 	var conf config
-	err = service.GetConfig("worker/config.json",
+	err = server.GetConfig("worker/config.json",
 		func(m func([]byte, interface{}) error, b []byte) error {
 			err := m(b, &conf)
 			if err != nil {
