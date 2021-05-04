@@ -4,6 +4,7 @@ import (
 	"context"
 	"crontab/master/api"
 	etcdtesting "crontab/shared/etcd/testing"
+	"crontab/shared/model"
 	"encoding/json"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/google/go-cmp/cmp"
@@ -29,7 +30,7 @@ func TestEtcd_CreateJob(t *testing.T) {
 		name    string
 		jobName string
 		command string
-		want    *api.Job
+		want    *model.Job
 		wantErr bool
 	}{
 		{
@@ -41,7 +42,7 @@ func TestEtcd_CreateJob(t *testing.T) {
 			name:    "exist_job",
 			jobName: "job_1",
 			command: "echo hello2",
-			want: &api.Job{
+			want: &model.Job{
 				Name:    "job_1",
 				Command: "echo hello1",
 			},
@@ -55,7 +56,7 @@ func TestEtcd_CreateJob(t *testing.T) {
 
 	for _, cc := range cases {
 		t.Run(cc.name, func(t *testing.T) {
-			got, err := e.CreateJob(ctx, &api.Job{
+			got, err := e.CreateJob(ctx, &model.Job{
 				Name:     cc.jobName,
 				Command:  cc.command,
 				CronExpr: "",
@@ -90,7 +91,7 @@ func TestEtcd_DeleteJob(t *testing.T) {
 		JobKey: "/test/",
 	}
 
-	jobs := []*api.Job{
+	jobs := []*model.Job{
 		{
 			Name:    "job_1",
 			Command: "echo hello1",
@@ -116,13 +117,13 @@ func TestEtcd_DeleteJob(t *testing.T) {
 	cases := []struct {
 		name    string
 		jobName string
-		want    *api.Job
+		want    *model.Job
 		wantErr bool
 	}{
 		{
 			name:    "exist_job",
 			jobName: "job_1",
-			want: &api.Job{
+			want: &model.Job{
 				Name:    "job_1",
 				Command: "echo hello1",
 			},
@@ -130,7 +131,7 @@ func TestEtcd_DeleteJob(t *testing.T) {
 		{
 			name:    "another_exist_job",
 			jobName: "job_2",
-			want: &api.Job{
+			want: &model.Job{
 				Name:    "job_2",
 				Command: "echo hello2",
 			},
@@ -176,7 +177,7 @@ func TestEtcd_GetJobs(t *testing.T) {
 		JobKey: "/test/",
 	}
 
-	jobs := []*api.Job{
+	jobs := []*model.Job{
 		{
 			Name:    "job_1",
 			Command: "echo hello1",

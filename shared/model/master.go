@@ -1,4 +1,4 @@
-package api
+package model
 
 type Job struct {
 	Name     string `json:"name"`      // 任务名

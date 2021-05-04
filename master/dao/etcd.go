@@ -2,7 +2,7 @@ package dao
 
 import (
 	"context"
-	"crontab/master/api"
+	"crontab/shared/model"
 	"encoding/json"
 	"fmt"
 
@@ -17,7 +17,7 @@ type Etcd struct {
 	logger *zap.Logger
 }
 
-func (e *Etcd) CreateJob(ctx context.Context, j *api.Job) (*api.Job, error) {
+func (e *Etcd) CreateJob(ctx context.Context, j *model.Job) (*model.Job, error) {
 	b, err := json.Marshal(j)
 	if err != nil {
 		return nil, fmt.Errorf("cannnot marshal: %v", err)
@@ -33,7 +33,7 @@ func (e *Etcd) CreateJob(ctx context.Context, j *api.Job) (*api.Job, error) {
 	}
 
 	// 如果是更新，那么返回旧值
-	var oldJ api.Job
+	var oldJ model.Job
 	err = json.Unmarshal(resp.PrevKv.Value, &oldJ)
 	if err != nil {
 		return nil, fmt.Errorf("cannot unmarshal previous kv: %v", err)
@@ -42,15 +42,15 @@ func (e *Etcd) CreateJob(ctx context.Context, j *api.Job) (*api.Job, error) {
 	return &oldJ, nil
 }
 
-func (e *Etcd) GetJobs(ctx context.Context) ([]*api.Job, error) {
-	resp, err := e.KV.Get(ctx, e.JobKey, clientv3.WithPrefix())
+func (e *Etcd) GetJobs(ctx context.Context) ([]*model.Job, error) {
+	resp, err := e.KV.Get(ctx, e.JobSaveDir, clientv3.WithPrefix())
 	if err != nil {
 		return nil, fmt.Errorf("cannot get jobs: %v", err)
 	}
 
-	var jobs []*api.Job
+	var jobs []*model.Job
 	for _, kv := range resp.Kvs {
-		var job api.Job
+		var job model.Job
 		err := json.Unmarshal(kv.Value, &job)
 		if err != nil {
 			e.logger.Error("cannot unmarshal job", zap.Error(err))

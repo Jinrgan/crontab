@@ -2,8 +2,8 @@ package master
 
 import (
 	"context"
-	"crontab/master/api"
 	"crontab/master/dao"
+	"crontab/shared/model"
 	"encoding/json"
 	"fmt"
 	"go.uber.org/zap"
@@ -26,7 +26,7 @@ func (h *Handler) Register() {
 func (h *Handler) SaveJob(w http.ResponseWriter, req *http.Request) error {
 	j := req.PostFormValue("job")
 
-	var job api.Job
+	var job model.Job
 	err := json.Unmarshal([]byte(j), &job)
 	if err != nil {
 		h.Logger.Error("cannot unmarshal post job", zap.Error(err))
@@ -112,7 +112,7 @@ type respMsg struct {
 	Data  interface{} `json:"data"`
 }
 
-func response(w http.ResponseWriter, data *api.Job) error {
+func response(w http.ResponseWriter, data *model.Job) error {
 	b, err := json.Marshal(respMsg{
 		Errno: 0,
 		Msg:   "success",
