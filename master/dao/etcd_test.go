@@ -2,15 +2,15 @@ package dao
 
 import (
 	"context"
-	"crontab/master/api"
 	etcdtesting "crontab/shared/etcd/testing"
 	"crontab/shared/model"
 	"encoding/json"
+	"os"
+	"testing"
+
 	"github.com/coreos/etcd/clientv3"
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/testing/protocmp"
-	"os"
-	"testing"
 )
 
 func TestEtcd_CreateJob(t *testing.T) {
@@ -21,9 +21,9 @@ func TestEtcd_CreateJob(t *testing.T) {
 	}
 
 	e := Etcd{
-		KV:     clientv3.NewKV(clt),
-		Lease:  clientv3.NewLease(clt),
-		JobKey: "/test/",
+		JobSaveDir: "/test/",
+		KV:         clientv3.NewKV(clt),
+		Lease:      clientv3.NewLease(clt),
 	}
 
 	cases := []struct {
@@ -86,9 +86,9 @@ func TestEtcd_DeleteJob(t *testing.T) {
 	}
 
 	e := Etcd{
-		KV:     clientv3.NewKV(clt),
-		Lease:  clientv3.NewLease(clt),
-		JobKey: "/test/",
+		JobSaveDir: "/test/",
+		KV:         clientv3.NewKV(clt),
+		Lease:      clientv3.NewLease(clt),
 	}
 
 	jobs := []*model.Job{
@@ -108,7 +108,7 @@ func TestEtcd_DeleteJob(t *testing.T) {
 			t.Fatalf("cannot marshal job: %v", err)
 		}
 
-		_, err = e.KV.Put(ctx, e.JobKey+j.Name, string(b))
+		_, err = e.KV.Put(ctx, e.JobSaveDir+j.Name, string(b))
 		if err != nil {
 			t.Fatalf("cannot put job: %v", err)
 		}
@@ -172,9 +172,9 @@ func TestEtcd_GetJobs(t *testing.T) {
 	}
 
 	e := Etcd{
-		KV:     clientv3.NewKV(clt),
-		Lease:  clientv3.NewLease(clt),
-		JobKey: "/test/",
+		JobSaveDir: "/test/",
+		KV:         clientv3.NewKV(clt),
+		Lease:      clientv3.NewLease(clt),
 	}
 
 	jobs := []*model.Job{
@@ -194,7 +194,7 @@ func TestEtcd_GetJobs(t *testing.T) {
 			t.Fatalf("cannot marshal job: %v", err)
 		}
 
-		_, err = e.KV.Put(ctx, e.JobKey+j.Name, string(b))
+		_, err = e.KV.Put(ctx, e.JobSaveDir+j.Name, string(b))
 		if err != nil {
 			t.Fatalf("cannot put job: %v", err)
 		}

@@ -11,10 +11,11 @@ import (
 )
 
 type Etcd struct {
-	KV     clientv3.KV
-	Lease  clientv3.Lease
-	JobKey string
-	logger *zap.Logger
+	JobSaveDir string
+	JobKillDir string
+	KV         clientv3.KV
+	Lease      clientv3.Lease
+	Logger     *zap.Logger
 }
 
 func (e *Etcd) CreateJob(ctx context.Context, j *model.Job) (*model.Job, error) {
@@ -23,7 +24,7 @@ func (e *Etcd) CreateJob(ctx context.Context, j *model.Job) (*model.Job, error) 
 		return nil, fmt.Errorf("cannnot marshal: %v", err)
 	}
 
-	resp, err := e.KV.Put(ctx, e.JobKey+j.Name, string(b), clientv3.WithPrevKV())
+	resp, err := e.KV.Put(ctx, e.JobSaveDir+j.Name, string(b), clientv3.WithPrevKV())
 	if err != nil {
 		return nil, fmt.Errorf("cannot put kv: %v", err)
 	}
@@ -53,7 +54,7 @@ func (e *Etcd) GetJobs(ctx context.Context) ([]*model.Job, error) {
 		var job model.Job
 		err := json.Unmarshal(kv.Value, &job)
 		if err != nil {
-			e.logger.Error("cannot unmarshal job", zap.Error(err))
+			e.Logger.Error("cannot unmarshal job", zap.Error(err))
 		}
 
 		jobs = append(jobs, &job)
@@ -62,8 +63,27 @@ func (e *Etcd) GetJobs(ctx context.Context) ([]*model.Job, error) {
 	return jobs, nil
 }
 
+func (e *Etcd) DeleteJob(ctx context.Context, jobName string) (*model.Job, error) {
+	resp, err := e.KV.Delete(ctx, e.JobSaveDir+jobName, clientv3.WithPrevKV())
+	if err != nil {
+		return nil, fmt.Errorf("cannot delete job: %v", err)
+	}
+
+	if resp.PrevKvs == nil {
+		return nil, fmt.Errorf("cannot delete unexist job: %v", err)
+	}
+
+	var oldJ model.Job
+	err = json.Unmarshal(resp.PrevKvs[0].Value, &oldJ)
+	if err != nil {
+		return nil, fmt.Errorf("cannot unmarshal: %v", err)
+	}
+
+	return &oldJ, nil
+}
+
 func (e *Etcd) KillJob(ctx context.Context, name string) error {
-	k := jobKillDir + name
+	k := e.JobKillDir + name
 
 	// 让 worker 监听到一次 put 操作，创建一个租约让其稍后自动过期即可
 	lsResp, err := e.Lease.Grant(ctx, 1)
@@ -77,23 +97,4 @@ func (e *Etcd) KillJob(ctx context.Context, name string) error {
 	}
 
 	return nil
-}
-
-func (e *Etcd) DeleteJob(ctx context.Context, jobName string) (*api.Job, error) {
-	resp, err := e.KV.Delete(ctx, e.JobKey+jobName, clientv3.WithPrevKV())
-	if err != nil {
-		return nil, fmt.Errorf("cannot delete job: %v", err)
-	}
-
-	if resp.PrevKvs == nil {
-		return nil, nil
-	}
-
-	var oldJ api.Job
-	err = json.Unmarshal(resp.PrevKvs[0].Value, &oldJ)
-	if err != nil {
-		return nil, fmt.Errorf("cannot unmarshal: %v", err)
-	}
-
-	return &oldJ, nil
 }
