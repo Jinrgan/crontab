@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/gorhill/cronexpr"
 	"time"
+
+	"github.com/gorhill/cronexpr"
 )
 
 func main() {
@@ -24,8 +25,7 @@ func (s *scheduler) createWork(expr *cronexpr.Expression) {
 	wCh := createWorker(expr)
 
 	go func() {
-		for {
-			res := <-wCh
+		for res := range wCh {
 			fmt.Println(res)
 		}
 	}()

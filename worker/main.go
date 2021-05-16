@@ -65,6 +65,7 @@ func main() {
 			Dir:     server.JobSaveDir,
 			Watcher: kvWch,
 		},
+		Logger: logger,
 	}
 
 	logger.Sugar().Error(sch.Run())
